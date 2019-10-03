@@ -1,0 +1,422 @@
+Lab on MySQL
+
+Updated 2019
+
+This lab is about basics of a DBMS used extensively across the Internet called MySQL. You will practice some of the typical tasks that are accomplished with Structured Query Language (SQL). 
+
+
+Creating Tables
+
+After logging into the MySQL server, you are ready to do some work on your database creation.
+You have a database space allocated to your use on the MySQL server. 
+
+To get to your database space, type:
+use MIS3500_YourUserID;
+   (replace ‘YourUserID’ with your user ID as before)
+
+The system response should be: Database changed .
+
+To check if you are in the right place, type: \s .
+
+To see if there is any table already in the database, type:
+show tables;
+
+The system response should be “Empty set”. Remember this command for the latter use, once you will have some tables created and want to make sure they exist.
+
+Now you can create your first table using the SQL statements below. You will be using a CREATE query. Note that the system will assume a continuous input as long as it does not encounter the semi-colon character (;). You can copy and paste the statements, although entering them manually for a bit will help you learn about the query structure. Note that the format of statement is given for the clarity purposes and not because the system requires it as such.
+create table Customer
+(
+CustomerID int NOT NULL AUTO_INCREMENT PRIMARY KEY, 
+CustFirstName  varchar(25),
+CustMidName varchar(10),
+CustLastName varchar(25)
+)
+;
+
+=================
+NOTE: Commands can be written either in the lower or upper case. Although the UNIX standard is lower case and MySQL runs on the UNIX operating system, the MySQL database engine is apparently not that restrictive. But, names of database objects are case sensitive! To do the work in an orderly fashion, you may decide to always enter system commands in the lower case, while the database objects must be addressed with the original case(s).
+=================
+
+
+To see how the table looks like type: 
+desc Customer;
+
+Output:
+ 
+
+But in accord with the Note above, the command addressing the table name with a lower ‘c’ (desc customer) would cause an error message.
+
+Move to creating the next table by entering the statements below. 
+
+create table SalesOrder
+(
+   OrderID int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+   OrderDate date, 
+   CustomerID int,
+   FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID)
+);
+
+The next table is Product:
+
+create table Product 
+(
+ProductID int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+ProductName varchar(25),
+UnitPrice decimal,
+NumberInStock int
+);
+
+Then create the table OrderLine:
+
+create table OrderLine 
+(OrderLineID int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+OrderID int, 
+ProductID int,
+QuantityOrdered varchar(15),
+FOREIGN KEY (OrderID) REFERENCES SalesOrder(OrderID),
+FOREIGN KEY (ProductID) REFERENCES Product(ProductID) 
+);
+
+To see all the tables type:
+show tables;
+
+
+Populating Tables
+
+Now you are ready to insert some records into these tables. Insert records into the tables without foreign key first, then insert records into tables with foreign keys.
+
+INSERT INTO Customer (CustFirstName, CustLastName)
+VALUES ('John', 'Doe'); 
+
+Note that the first line names columns, while the second inputs the data. The system checks (a) that the number of items is the same across these lines, and (b) the data types.
+
+Check:  select * from Customer;
+Note the NULL value for the missing middle name.
+
+Insert another record into table Customer:
+
+INSERT INTO Customer (CustFirstName, CustMidName, CustLastName)
+VALUES ('Bob', 'R.', 'Travis');
+
+Check:  select * from Customer;
+
+
+Work then with other tables as follows.
+
+INSERT INTO Product (ProductID, ProductName, UnitPrice, NumberInStock)
+VALUES (1, 'Strawberry', 4.99, 16);
+
+Check:
+select * from Product;
+
+Output:
+mysql> select * from Product;
++-----------+-------------+-----------+---------------+
+| ProductID | ProductName | UnitPrice | NumberInStock |
++-----------+-------------+-----------+---------------+
+|         1 | Strawberry  |         5 |            16 |
++-----------+-------------+-----------+---------------+
+1 row in set (0.00 sec)
+
+You can see that one record has been created, however, the price is 5 instead of 4.99.  It is because the data type was set with no decimal digits. You need to change it so that 2 decimal places are allocated. Run this alter table procedure:
+
+alter table Product
+modify UnitPrice decimal (5, 2);
+
+Check that result is as shown below.
+ 
+
+Check the content of table Product. The incorrect price is still in it (5). So, you need to update the price: 
+
+UPDATE Product
+SET UnitPrice =4.99 WHERE ProductID =1;
+
+Check that the right price is now inserted.
+
+
+Keep entering data into SalesOrder:
+
+mysql> INSERT INTO SalesOrder (OrderDate, CustomerID)
+    -> VALUES (DATE '2006-10-11', 1);
+Query OK, 1 row affected (0.06 sec)
+
+
+Check:
+mysql> select * from SalesOrder;
+
+
+
+Output:
+
++---------+------------+------------+
+| OrderID | OrderDate  | CustomerID |
++---------+------------+------------+
+|       1 | 2006-10-11 |          1 |
++---------+------------+------------+
+1 row in set (0.00 sec)
+
+Check:
+
+mysql> select * from SalesOrder;
+
+Output:
++---------+------------+------------+
+| OrderID | OrderDate  | CustomerID |
++---------+------------+------------+
+|       1 | 2006-10-11 |          1 |
++---------+------------+------------+
+1 row in set (0.00 sec)
+
+Finally, enter a row into table OrderLine:
+INSERT INTO OrderLine (OrderLineID, OrderID, ProductID, QuantityOrdered)
+VALUES (1,1,1,’3kg’);
+
+Check:
+ 
+
+
+Useful Row and Table Commands
+
+These commands are compliant with the SQL standard that works across DBMSes. 
+
+Table Copying
+
+To copy a table, there are several options, with regard to what is copied (just the structure (metadata) o the structure and indexes – all without data, or all these with the data). Below is that last total copy options shown via screen copies.
+
+mysql> create table Customer2 as select * from Customer;
+Query OK, 2 rows affected (0.04 sec)
+Records: 2  Duplicates: 0  Warnings: 0
+
+Check:
+
+mysql> select * from Customer2;
++------------+---------------+-------------+--------------+
+| CustomerID | CustFirstName | CustMidName | CustLastName |
++------------+---------------+-------------+--------------+
+|          1 | John          | NULL        | Doe          |
+|          2 | Bob           | R.          | Travis       |
++------------+---------------+-------------+--------------+
+2 rows in set (0.00 sec)
+
+Table Deletion
+
+The syntax is: drop table [table name];
+
+For example: drop table Customer2;
+
+Row Deletion
+
+A delete query works as in any relational DBMS supporting SQL. So, the syntax is: 
+delete from [table name] where [condition] .
+
+Let’s assume a table Customer5 is created via the copy statement above, and then we want to delete the row for the customer Bob. The screenshot below demonstrates all these steps.
+
+ 
+Note: Error is reported because of disrespecting the upper case in the table name.
+
+Clear Screen
+
+Type \c .
+For example, you use this command when you want to exit a sequence of command lines before typing the semi-colon symbol because you made some error that cannot be corrected.
+
+Exit MySQL
+
+Type exit or quit or \q .
+
+Searching More than One Table
+
+The SELECT query of multiple tables works in a MySQL system as in any other database system supporting the SQL standard. The INNER JOIN and OUTER JOINS work as with, say, MS Access.
+Try the simplest query first on tables Customer and SalersOrder, as shown below.
+
+mysql> select * from Customer
+    -> inner join SalesOrder on
+    -> Customer.CustomerID=SalesOrder.CustomerID
+    -> ;
+
+ 
+
+
+
+
+The LEFT JOIN works too:
+ 
+
+
+The old SQL syntax should also works:
+ 
+
+
+
+How about joining more than 2 tables (something students really like!)   Let us see who likes strawberrie. A join of 4 tables is needed as follows.
+
+SELECT Customer.CustFirstName, CustLastName, Product.ProductName As 'Bought product'
+FROM Product INNER JOIN
+ (
+   ( OrderLine INNER JOIN 
+        (Customer INNER JOIN SalesOrder ON Customer.CustomerID=SalesOrder.CustomerID)
+     ON OrderLine.OrderID=SalesOrder.OrderID
+    )
+  )
+     ON Product.ProductID=OrderLine.ProductID        
+WHERE Product.ProductName LIKE 'Strawb%'  ;
+
+Screen shot of the statement and output:
+ 
+
+Analysis:
+
+1. The schema is: Customer---SalesOrder---OrderLine---Product. The INNER JOIN works the same way as in MS Access. Starting from the innermost part of the query, the first join references tables Customer to SalesOrder, the result of the next join references OrderLine, and the result of this join references Product.
+
+2. The LIKE operator for strings is supported as in MS Access. Quotes must be used.
+
+3. The wild card symbol replacing any character and any number of characters is a ‘%’.
+
+
+The old SQL syntax also works:
+
+SELECT Customer.CustFirstName, CustLastName, Product.ProductName As 'Bought product'
+FROM Product, OrderLine, SalesOrder, Customer
+WHERE 
+   Product.ProductID=OrderLine.ProductID AND
+   OrderLine.OrderID=SalesOrder.OrderID AND
+   SalesOrder.CustomerID=Customer.CustomerID
+                                 AND    
+   Product.ProductName LIKE 'Strawb%'    ;
+
+ 
+
+
+Saving Query 
+
+A query can be saved as a procedure, which is MySQL is any set of legal commands. Note the argument symbol – ‘()’ –  associated with the procedure name queryCustomer. Naming queries is bound to MySQL limitations of reserved words. Used here is a compromise solution. 
+
+Try to make the saved query as shown below:
+
+mysql> create procedure queryCustomer() select * from Customer;
+
+Checking the query file:
+
+mysql> show create procedure queryCustomer;
+
+Output (part with the SQL statement yellowed):
+
+| Procedure     | sql_mode    | Create Procedure | character_set_client | collation_connection |   Database Collation | queryCustomer |   STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION                                        | CREATE DEFINER=`btravica`@`%` PROCEDURE `queryCustomer`()
+  select * from Customer
+
+Another way of checking a saved query: 
+
+mysql> show procedure status like 'queryCustomer'\G;
+
+Output:
+*************************** 1. row ***************************
+                  Db: MIS3500
+                Name: queryCustomer
+                Type: PROCEDURE
+             Definer: btravica@%
+            Modified: 2017-03-19 12:54:31
+             Created: 2017-03-19 12:54:31
+       Security_type: DEFINER
+             Comment: … [deleted]
+
+Note the nicer, centered formatting enabled by the command ‘\G’, the string operator LIKE, and quotes around the query name.
+
+
+To use this saved query, try the command CALL:
+
+mysql> call queryCustomer();
+
+Output:
++------------+---------------+-------------+--------------+
+| CustomerID | CustFirstName | CustMidName | CustLastName |
++------------+---------------+-------------+--------------+
+|          1 | John          | NULL        | Doe          |
+|          2 | Bob           | R.          | Travis       |
++------------+---------------+-------------+--------------+
+2 rows in set (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+===============================================================================
+Appendix
+
+Follows some potentially useful hints.
+
+ My SQL Tutorials
+
+Visit:
+
+ https://dev.mysql.com/doc/refman/5.7/en/ 
+
+ https://www.w3schools.com/sql
+
+ https://www.tutorialspoint.com/mysql/ 
+
+
+MySQL commands
+
+Some MySQL commands follow. Note that all text commands must be first on line and end with a semi-colon (;).
+
+Help (yes, please!)	\?  or  help or  \h 
+– typing this will output a longer list of MySQL commands on the client side
+Clear screen    	\c
+Reconnect to the server  	\r
+Edit command with $EDITOR	\e
+Display result vertically	\G
+Exit MySQL, quit	\q
+Send command to mysql server (go)	\g
+Execute an SQL script file; takes a file name as an argument.	source    \.. 
+Get status details from the server	\s
+Execute a system shell command	\!
+Append everything into given outfile	 \T  
+Use database	use [database name] or     \u [database name]
+Show warnings after every statement	\W
+Don't show warnings after every statement	\w
+
+The command “help contents” will list commands on the server side, as shown below:
+ 
+
+Further drilling down on the Administration commands (the second item top-down on the list above) gives: 
+ 
+More Commands
+
+The following is a list of commonly used LINUX/UNIX commands which may be of value during your Telnet sessions. (LINUX is a version of UNIX.) Some may not work though, depending on the Linux version used. Also, some are executable just within the LINUX/UNIX environment and not within MySQL.
+To get in the LINUX/UNIX environment use the command \! [command]. For example, mysql> \! date; will print the current date. But mysql> date; will return an error message (“ERROR 1064 (42000): You have an error in your SQL syntax; check the manual…”).
+
+Remember that LINUX/UNIX is case sensitive. Options or flags which can be used with a command are placed in [ ]. The [ ] are not part of the command and should not be included in the command that you type.
+
+•	login user name - allows you to login for a Telnet session
+•	passwd - changes your password
+•	logout - logs you out of a Telnet session
+•	cd - change directory; cd .. moves you backwards to the next higher subdirectory level
+•	cd / - moves you to the highest directory level
+•	chmod - permissions filenames changes the permissions for a file; permissions should include a letter designating who gets permissions (u for the user, g for the group, o for others, or a for all) followed by a + or - (to give or take away the permission) followed by the kind of permission (r for read access, w for write access, x for execute if the file is a program or script); the complete command that you type should look like:     chmod g-w filename
+•	 cp oldfiles newfile - copies a file; this leaves the old file intact and makes a new copy with a new filename
+•	date - prints the current date and time
+•	df - displays how much space on the disks (harddrive partitions) is free
+•	du [-a] [-s] directories – outputs the disk space used; the -a option displays the space used by each file, not just each directory; the -s option displays the total space used for each directory but not subdirectory
+•	finger username@servername – reveals details concerning a user; finger without the username@servername will show who is using the server at that time 
+•	ls [-l] [-a] [-p] [-r] [-t] [-x] – an oft-used useful command, lists the files in a directory; -l displays details of each file and directory, including permissions, owners, size and time/date when the file was last modified; -a option displays all the files and subdirectories including hidden files (with names that begin with a dot); -p displays a slash at the end of each directory name to distinquish them from filenames; -r displays files in reverse order; -t displays files in order of modification time; -x displays the filenames in columns across the screen.
+•	lynx servername or URLLynx is a text-based, non-graphical web brower for use in Telnet session
+•	man [-k keywords] topic displays the reference manual page about a LINUX  command; the -k keywords option allows you to see all man pages that contain that keyword; topic is the command or topic which you seek 
+•	mesg [n|y] lets you control whether other people can use the talk command to interrupt you with on-screen messaging; mesg n will block the interruptions;  mesg y will allow interruptions
+•	mkdir [new directory] - makes a new subdirectory with the name specified 
+•	mv [-i] oldname newnamere - names a file or moves it from one filename or directory to another; the -i option tells mv to prompt you before it replaces an existing filename
+•	nslookup IP address or server alias - provides conversion of an IP address to  an alias of a computer if it is registered in DNS (Domain Name Service) or will provide the IP address for an alias
+•	pine - a text editor; instructions on the pine by man pine 
+•	ping IP address or server aliassends a ping packet to another server; this informs about the time it takes for data to make the round trip to the other computer; it will also tell you whether the     other server is on-line at that time 
+•	psd displays lsist your processes/jobs/programs which are running on the server
+•	rm [-i] [-r] filenames removes or deletes files; the -i option asks you to confirm that you want to delete each file; the -r option is dangerous because it allow you to delete an entire directory and all its files 
+•	rmdir directoryremoves a directory; you can use the -i and -r options which are described in the rm command
+•	viVI is a text editor
+•	who shows who is logged into the system and how they are connected
+•	who reports who is using the server at that time
+•	write username sends a message to another person using the system; to prevent  someone from writing to you, see the mesg n command
+
+More Manuals
+	Common Linux Commands http://papa.indstate.edu/docs/common_commands.html 
+	MySQL 5.0 reference manual 
+http://dev.mysql.com/doc/refman/5.0/en/
+
+ 
+
+
